@@ -23,8 +23,9 @@ export function analyzeDish(dish: Dish, profile: Profile, catalog: Catalog): Ana
     return [{ ingredient, allergenIds, externalUncertain: uncertain.has(ingredient.id), reviewed: ingredient.verification_status === 'verified' && !uncertain.has(ingredient.id) && allergenIds.every(id => mappings.some(m => m.allergen_id === id && m.evidence_status === 'verified')) }]
   })
   const hasProfile = profile.allergens.length > 0 || !!profile.other.trim()
-  const state = !hasProfile ? 'no-profile' : findings.length ? 'possible' : !ingredients.length || unknownAllergenIds.length > 0 || !!profile.other.trim() ? 'insufficient' : 'unconfirmed'
+  const state = !hasProfile ? 'no-profile' : findings.length ? 'possible' : !ingredients.length || !!dish.unmapped_ingredients?.length || unknownAllergenIds.length > 0 || !!profile.other.trim() ? 'insufficient' : 'unconfirmed'
   const requests = [...new Set(findings.map(f => f.ingredient.staff_request_ko).filter(Boolean))]
+  if (dish.unmapped_ingredients?.length) requests.push('레시피에 적힌 다음 재료는 알레르기 정보와 연결되지 않았습니다: '+dish.unmapped_ingredients.join(', ')+'. 실제 사용 제품의 원재료와 알레르기 표시를 확인해 주세요.')
   return { state, findings, ingredients, missing, requests, unknownAllergenIds }
 }
 export function restaurantMessage(profile: Profile, catalog: Catalog, analysis?: Analysis): string {

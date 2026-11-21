@@ -10,7 +10,7 @@ if (!url || !publishableKey) {
 try {
   const catalog = await loadSupabaseCatalog(undefined, { url, publishableKey })
   const statuses = Object.fromEntries(['verified','needs_review','unknown'].map(s => [s,catalog.ingredient_master.filter(i => i.verification_status === s).length]))
-  console.log(JSON.stringify({ connected:true, ingredients:catalog.ingredient_master.length, ingredientTags:catalog.allergen_master.length, verificationStatuses:statuses }, null, 2))
+  console.log(JSON.stringify({ connected:true, ingredients:catalog.ingredient_master.length, ingredientTags:catalog.allergen_master.length, recipes:catalog.dishes.length, recipeOrigin:catalog.recipe_data_origin, recipeReadIssue:catalog.recipe_load_issue || false, unresolvedRecipeIngredients:catalog.dishes.reduce((n,d)=>n+(d.unmapped_ingredients?.length || 0),0), verificationStatuses:statuses }, null, 2))
 } catch {
   console.error('Connection check failed. Check network, public key and RLS SELECT permissions. No database writes were attempted.')
   process.exit(1)

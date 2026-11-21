@@ -15,8 +15,12 @@ export interface Dish {
   external_ingredient_ids: string[]; ingredients_complete: boolean;
   nutrition?: { kcal: number; protein_g: number; carbs_g: number; source: string };
   source_note: string;
+  source_kind?: 'public' | 'reference' | 'demo'; source_url?: string;
+  raw_ingredients?: string; unmapped_ingredients?: string[];
+  reference_ingredients?: { name: string; quantity: string; mapped: boolean }[];
 }
 export interface Catalog {
+  recipe_data_origin?: 'bundled-public' | 'supabase'; recipe_load_issue?: boolean;
   ingredient_master: Ingredient[]; allergen_master: Allergen[];
   ingredient_allergen_mapping: IngredientAllergenMapping[];
   external_ingredient_master_mapping: ExternalIngredientMapping[]; dishes: Dish[];

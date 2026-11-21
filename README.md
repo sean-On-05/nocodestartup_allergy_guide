@@ -44,12 +44,13 @@ Node.js 22.12+ 또는 24를 사용하세요. 환경 변수가 없으면 명확�
 
 ## 데이터의 현재 범위
 
-개발 중 확인한 공개 조회 결과: `ingredient_master` 761개, 모두 `verification_status = needs_review`. 별도 `allergen_master`, `ingredient_allergen_mapping`, `external_ingredient_master_mapping` 조회 결과는 각각 0건입니다. 실제 데이터 부재인지 RLS 영향인지는 공개 키만으로 판단할 수 없습니다. 이 수치를 UI에 고정하지 않고 매 조회 결과를 사용합니다.
+개발 중 확인한 공개 조회 결과: `ingredient_master` 761개, 모두 `verification_status = needs_review`. 별도 `allergen_master`, `ingredient_allergen_mapping`, `external_ingredient_master_mapping` 조회 결과는 각각 0건입니다. 음식 테이블은 현재 비어 있는 것으로 사용자가 확인했습니다. 이 수치를 UI에 고정하지 않고 매 조회 결과를 사용합니다.
 
 - 실제 모드의 알레르기 선택지는 `global_allergens`의 고유 태그로 구성합니다. 별도 기준 테이블을 조회한 것으로 표시하지 않습니다.
 - 갑각류(`Crustacean`)를 새우만으로 축소하지 않습니다. DB 태그 ID를 보존합니다.
 - DB의 `user_notice_en`, `hidden_warning_en`, `staff_request_ko`를 사용합니다. DB 내용 자체를 의학적으로 검증하거나 자동 교정하지 않습니다.
-- 음식별 재료 연결 테이블/API는 아직 확인되지 않았습니다. 음식명만으로 실제 레시피를 추정하지 않습니다. 직접 고른 재료는 사용자 선택임을 표시합니다.
+- 식약처 공식 샘플 레시피 5개와 재료 36행을 출처와 함께 연결했습니다. Supabase 음식 테이블이 비어 있으면 앱에 포함된 공공 샘플임을 표시합니다. DB 반영용 SQL을 실행하면 같은 화면에서 실제 음식 테이블을 우선 읽습니다. 미연결 재료를 숨기지 않으며 모든 연결은 검토 전입니다.
+- Supabase 반영 절차, 이용 조건과 원본은 [공공데이터 안내](docs/public-data.md)에 있습니다. 공개 키만으로 운영 DB에 관리자 SQL을 실행하지 않았습니다.
 - **AI 사진 인식은 미연결입니다.** 음식명을 자동 인식한 것처럼 보여주지 않습니다.
 - **영양 정보는 실제 출처 데이터가 있을 때만** 표시합니다. 지금 식재료 DB에는 영양값이 없으므로 미제공으로 표시합니다.
 - 비건 등 식단 분류는 DB 값이며 검증 전입니다. `Vegan`이면서 갑각류/생선 태그가 있는 등 상충하는 항목도 있으므로 알레르기 판단 근거로 사용하지 않습니다.
@@ -70,4 +71,6 @@ src/lib/analysis.test.ts    불확실성·매핑·분류 충돌 회귀 검사
 docs/inspect-schema.sql     스키마·정책 조회용 읽기 전용 SQL
 ```
 
-다음 연결 단계와 스키마 확인 방법은 [Supabase 연동 문서](docs/supabase.md)를 참고하세요.
+공공데이터 반영은 [준비된 SQL](data/public-recipes/import-to-supabase.sql)을 Supabase SQL Editor에서 실행하면 됩니다. 중복·충돌 방지와 공개 읽기 전용 정책이 포함되어 있습니다.
+
+기타 스키마 확인 방법은 [Supabase 연동 문서](docs/supabase.md)를 참고하세요.
