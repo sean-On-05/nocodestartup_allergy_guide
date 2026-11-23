@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from './types'
-import { authClient, accountProfileSchema, authRedirect, AUTH_STORAGE_KEY } from './auth'
+import { authClient, accountProfileSchema, authRedirect, authErrorCode, AUTH_STORAGE_KEY } from './auth'
 import { emptyProfile, loadProfile, saveProfile } from './profile'
 
 type CloudStatus = 'guest' | 'loading' | 'ready' | 'saving' | 'saved' | 'error'
@@ -14,6 +14,7 @@ export function useAccountProfile() {
   const [loaded, setLoaded] = useState(false)
   const [retry, setRetry] = useState(0)
   const [authBusy, setAuthBusy] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
   const identity = useRef<string | null>(null)
   const sequence = useRef(0)
   const queue = useRef<Promise<boolean>>(Promise.resolve(true))
@@ -36,7 +37,7 @@ export function useAccountProfile() {
       setUser(next); setAuthReady(true)
     }
     // Keep this callback synchronous: SDK auth events hold an internal lock.
-    const { data } = authClient.auth.onAuthStateChange((_event, session) => { events++; apply(session?.user || null) })
+    const { data } = authClient.auth.onAuthStateChange((event, session) => { events++; if(event==='PASSWORD_RECOVERY')setPasswordRecovery(true);if(event==='SIGNED_OUT')setPasswordRecovery(false);apply(session?.user || null) })
     authClient.auth.getSession().then(({ data, error }) => {
       if (!alive || events) return
       if (error) setAuthError('session_failed')
@@ -88,13 +89,37 @@ export function useAccountProfile() {
     })
     return queue.current
   }
-  const signIn = async () => {
-    if (!authClient || authBusy) return
+  const emailAction = async (action: 'signin' | 'signup' | 'resend' | 'reset', email: string, password = ''): Promise<'signed_in' | 'check_email' | null> => {
+    if (!authClient || authBusy) return null
     setAuthBusy(true); setAuthError('')
     try {
-      const { error } = await authClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: authRedirect(location.origin), queryParams: { prompt: 'select_account' } } })
-      if (error) setAuthError('signin_failed')
-    } catch { setAuthError('signin_failed') } finally { setAuthBusy(false) }
+      const address = email.trim()
+      const redirect = authRedirect(location.origin)
+      if (action === 'signin') {
+        const { error } = await authClient.auth.signInWithPassword({ email: address, password })
+        if (error) { setAuthError(authErrorCode(error)); return null }
+        return 'signed_in'
+      }
+      if (action === 'signup') {
+        const { data, error } = await authClient.auth.signUp({ email: address, password, options: { emailRedirectTo: redirect } })
+        if (error) { setAuthError(authErrorCode(error)); return null }
+        return data.session ? 'signed_in' : 'check_email'
+      }
+      const { error } = action === 'resend'
+        ? await authClient.auth.resend({ type: 'signup', email: address, options: { emailRedirectTo: redirect } })
+        : await authClient.auth.resetPasswordForEmail(address, { redirectTo: redirect })
+      if (error) { setAuthError(authErrorCode(error)); return null }
+      return 'check_email'
+    } catch { setAuthError('auth_failed'); return null } finally { setAuthBusy(false) }
+  }
+  const changePassword = async (password: string): Promise<boolean> => {
+    if (!authClient || authBusy) return false
+    setAuthBusy(true); setAuthError('')
+    try {
+      const { error } = await authClient.auth.updateUser({ password })
+      if (error) { setAuthError(authErrorCode(error)); return false }
+      setPasswordRecovery(false); return true
+    } catch { setAuthError('auth_failed'); return false } finally { setAuthBusy(false) }
   }
   const signOut = async () => {
     if (!authClient || authBusy) return
@@ -119,6 +144,6 @@ export function useAccountProfile() {
       return true
     } catch { setAuthError('delete_failed'); return false } finally { setAuthBusy(false) }
   }
-  return { user, profile, authReady, authBusy, authError, cloudStatus, canEdit, loaded, update, signIn, signOut, deleteAccount, reload: () => setRetry(n => n + 1), configured: Boolean(authClient) }
+  return { user, profile, authReady, authBusy, authError, cloudStatus, canEdit, loaded, update, emailAction, passwordRecovery, changePassword, signOut, deleteAccount, reload: () => setRetry(n => n + 1), configured: Boolean(authClient) }
 }
 export type AccountState = ReturnType<typeof useAccountProfile>

@@ -18,9 +18,16 @@ export function authRedirect(origin: string) {
   // Fixed same-origin destination. Never use a return URL from query parameters.
   return new URL('/?auth=callback', origin).href
 }
-export async function googleAvailable(signal?: AbortSignal): Promise<boolean> {
+export async function emailAvailable(signal?: AbortSignal): Promise<boolean> {
   if (!url || !key) return false
   const res = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key }, signal, cache: 'no-store' })
   if (!res.ok) throw new Error('settings_unavailable')
-  return (await res.json()).external?.google === true
+  return (await res.json()).external?.email === true
+}
+
+export function authErrorCode(error: unknown): string {
+  const e = error as { code?: string; status?: number } | null
+  if (e?.status === 429) return 'rate_limited'
+  const known = ['invalid_credentials','email_not_confirmed','weak_password','email_address_invalid','email_address_not_authorized','signup_disabled','email_provider_disabled','over_email_send_rate_limit','over_request_rate_limit']
+  return e?.code && known.includes(e.code) ? e.code : 'auth_failed'
 }

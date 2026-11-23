@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { PGlite } from '@electric-sql/pglite'
-import { accountProfileSchema, authRedirect } from './auth'
+import { accountProfileSchema, authRedirect, authErrorCode } from './auth'
 
 const migration = await readFile(new URL('../../supabase/migrations/202611230001_account_profiles.sql', import.meta.url), 'utf8')
 const a = '00000000-0000-0000-0000-000000000001'
@@ -47,4 +47,11 @@ test('private profile RLS isolates two users; anonymous access denied; self-dele
     assert.deepEqual((await db.query('select id from auth.users')).rows, [{ id: b }])
     assert.deepEqual((await db.query('select user_id from public.kfood_user_profiles')).rows, [{ user_id: b }])
   } finally { await db.close() }
+})
+
+test('email authentication errors are normalized without exposing raw provider details',()=>{
+  assert.equal(authErrorCode({code:'invalid_credentials',message:'private detail'}),'invalid_credentials')
+  assert.equal(authErrorCode({status:429,message:'private detail'}),'rate_limited')
+  assert.equal(authErrorCode({code:'internal_code',message:'private detail'}),'auth_failed')
+  assert.equal(authErrorCode(null),'auth_failed')
 })

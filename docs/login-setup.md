@@ -1,63 +1,54 @@
-# Google 로그인 켜기
+# 이메일 로그인 설정
 
-로그인 화면·Supabase Auth PKCE 로그인 복귀·계정별 알레르기 저장·로그아웃·설정 삭제·탈퇴 코드는 준비되어 있습니다. Supabase 관리 권한과 Google OAuth 클라이언트 설정은 계정 소유자가 아래에서 완료해야 합니다. **Gemini API 키와 Google 로그인용 OAuth 클라이언트는 서로 다릅니다.** OAuth 비밀키를 채팅이나 GitHub에 올리지 마세요.
+현재 앱은 **이메일·비밀번호 회원가입과 로그인**을 사용합니다. Google OAuth 클라이언트, Client ID, Client Secret은 필요 없습니다.
 
-## 1. 개인 설정 테이블 만들기
+## 사용 흐름
 
-1. [테이블 생성 SQL](../supabase/migrations/202611230001_account_profiles.sql)을 열고 전체 내용을 복사합니다.
-2. [Supabase SQL Editor](https://supabase.com/dashboard/project/nxtfzuocofncnzfcfuel/sql/new)에 붙여 넣고 Run을 누릅니다.
-3. 이 SQL은 `kfood_user_profiles` 테이블, 본인 행에만 접근하는 RLS 정책, 본인 계정 탈퇴 함수만 만듭니다. 기존 음식·식재료 데이터는 변경하지 않습니다. 탈퇴 함수는 생성만으로 실행되지 않습니다.
+1. [계정 화면](https://kfood-allergy-guide.vercel.app/#account)에서 회원가입을 선택합니다.
+2. 이메일과 8자 이상의 비밀번호를 입력하고 계정 저장 안내에 동의합니다.
+3. 받은편지함/스팸함의 가입 확인 메일에서 링크를 누릅니다.
+4. 계정 화면에서 이메일과 비밀번호로 로그인합니다. 확인 직후 로그인 세션이 생성되는 설정이면 바로 계정 화면이 열립니다.
+5. 알레르기를 수정·저장하면 같은 계정으로 다른 기기에서도 불러옵니다.
 
-## 2. Google 로그인용 클라이언트 만들기
+기존 사용자는 로그인 탭을 이용합니다. 확인 메일 재발송과 비밀번호 재설정 링크 요청도 계정 화면에서 할 수 있습니다. 비밀번호는 앱의 알레르기 DB나 localStorage에 저장하지 않으며 Supabase Auth가 처리합니다. 로그인 세션은 SDK가 브라우저에 저장하므로 공용 기기에서는 로그아웃합니다.
 
-1. [Google Cloud Console](https://console.cloud.google.com/auth/overview)에 로그인합니다. 서비스에 사용할 프로젝트를 선택합니다. Gemini 프로젝트와 같아도 되고 별도여도 됩니다.
-2. Google Auth Platform에서 앱 이름 `K-Food Allergy Guide`, 지원 이메일, 개발자 연락 이메일을 설정합니다. 일반 방문객을 받으려면 Audience는 **External**로 설정합니다.
-3. **Clients → Create client → Web application(웹 애플리케이션)**을 선택합니다.
-4. 아래 값을 등록합니다.
+## Supabase 설정
 
-| Google 설정 | 등록 값 |
-|---|---|
-| Authorized JavaScript origins | `https://kfood-allergy-guide.vercel.app` |
-| Authorized redirect URIs | `https://nxtfzuocofncnzfcfuel.supabase.co/auth/v1/callback` |
+### 1. 계정별 설정 테이블
 
-5. 생성된 Client ID와 Client Secret을 아래 Supabase Google 제공자 설정에 직접 입력합니다. **Gemini API 키를 넣는 칸이 아닙니다.**
-6. Testing 상태에서는 Audience에 등록한 Test users만 로그인할 수 있습니다. 먼저 본인 이메일을 Test users에 추가해 확인하고, 모든 방문객에게 제공할 때는 앱의 게시 상태를 Production으로 전환합니다. Google이 요구하는 앱·도메인 정보를 실제 서비스에 맞춰 작성합니다.
+아직 실행하지 않았다면 [개인 설정 SQL](../supabase/migrations/202611230001_account_profiles.sql)을 전체 복사해 [SQL Editor](https://supabase.com/dashboard/project/nxtfzuocofncnzfcfuel/sql/new)에서 한 번 실행합니다. 이미 실행했다면 다시 만들 필요 없습니다. SQL은 재실행할 수 있습니다.
 
-## 3. Supabase에서 Google 제공자 켜기
+`kfood_user_profiles`에는 본인만 조회·수정할 수 있는 RLS 정책이 적용됩니다. 기존 음식·식재료 데이터는 변경하지 않습니다. 탈퇴 함수는 생성만으로 실행되지 않습니다.
 
-[Supabase Authentication](https://supabase.com/dashboard/project/nxtfzuocofncnzfcfuel/auth/providers) → Sign In / Providers → Google:
+### 2. 이메일 제공자
 
-- Enable Sign in with Google을 켭니다.
-- Client IDs에 Google에서 발급한 웹 Client ID를 입력합니다.
-- Client Secret에 해당 OAuth Client Secret을 입력하고 저장합니다.
-- 추가 Google API 권한은 필요 없습니다. 기본 로그인용 `openid`, `email`, `profile`만 사용합니다.
+[Authentication → Sign In / Providers](https://supabase.com/dashboard/project/nxtfzuocofncnzfcfuel/auth/providers)에서 Email을 켭니다. Google 제공자는 사용하지 않습니다. 이메일 확인은 켜진 상태를 기준으로 안내합니다. 비밀번호 복잡도 정책은 Supabase에서 강화할 수 있으며 앱은 회원가입·재설정에 최소 8자를 요구합니다.
 
-## 4. 로그인 후 돌아올 주소 등록
+### 3. 메일에서 돌아올 주소
 
-[Supabase URL Configuration](https://supabase.com/dashboard/project/nxtfzuocofncnzfcfuel/auth/url-configuration)에서:
+[URL Configuration](https://supabase.com/dashboard/project/nxtfzuocofncnzfcfuel/auth/url-configuration)에 다음을 등록합니다.
 
 | 항목 | 값 |
 |---|---|
 | Site URL | `https://kfood-allergy-guide.vercel.app` |
-| Redirect URLs에 추가 | `https://kfood-allergy-guide.vercel.app/?auth=callback` |
+| Redirect URLs | `https://kfood-allergy-guide.vercel.app/?auth=callback` |
 
-다른 도메인이나 Vercel 미리보기에서 로그인도 테스트하려면 해당 주소의 `/?auth=callback`을 개별 등록해야 합니다. 무분별한 와일드카드는 사용하지 않습니다. Google의 redirect URI와 Supabase의 Redirect URL은 목적이 다른 주소입니다.
+가입 확인·비밀번호 재설정 메일 모두 이 주소를 사용합니다. 복귀 후 인증 코드는 Supabase SDK의 PKCE 흐름으로 교환하며, 비밀번호 재설정 링크는 새 비밀번호 입력 화면으로 연결합니다. 링크를 요청한 브라우저에서 여는 것을 권장합니다. 다른 브라우저나 기기에서 확인해 세션 교환이 되지 않으면 원래 화면에서 이메일·비밀번호 로그인을 시도합니다. 재설정 링크의 세션 교환이 안 되면 사용할 브라우저에서 링크를 다시 요청합니다.
 
-## 5. 확인
+### 4. 메일이 오지 않는 경우
 
-1. [운영 계정 화면](https://kfood-allergy-guide.vercel.app/#account)에서 **다시 확인**을 누릅니다. 전송 동의 후 Google 로그인이 활성화됩니다.
-2. Google로 로그인하고 내 알레르기를 설정·저장합니다.
-3. 새 시크릿 창에서 같은 계정으로 로그인해 저장한 설정이 불러와지는지 확인합니다.
-4. 다른 계정은 빈 설정으로 시작하는지 확인합니다. 로그인 전 비로그인 설정은 자동 업로드하지 않으며, 계정 화면에서 명시적으로 가져올 수 있습니다.
-5. 로그아웃하면 계정 설정은 화면에서 제거되고 기존 비로그인 설정으로 돌아갑니다. 계정 알레르기는 앱의 guest localStorage 키에 저장하지 않습니다. 로그인 세션 토큰은 SDK가 브라우저에 저장하므로 공용 기기에서는 로그아웃합니다.
+- 스팸함과 Supabase Auth 로그를 확인합니다. 여러 번 연속 요청하면 발송 제한에 걸릴 수 있습니다.
+- Supabase 기본 메일 발송 서비스는 테스트용으로 발송 횟수와 수신 대상에 제한이 있습니다. 일반 방문객에게 가입 메일을 발송하려면 [Custom SMTP](https://supabase.com/dashboard/project/nxtfzuocofncnzfcfuel/auth/smtp)에서 발송 서비스를 연결해야 할 수 있습니다. 제공자 활성화만으로 모든 주소에 메일이 도달한다고 보장되지는 않습니다.
+- SMTP 비밀번호/API 키는 Supabase 대시보드에 직접 입력합니다. 채팅·GitHub·프런트엔드에 넣지 않습니다.
+- 메일 제목/본문은 기본 가입 확인·비밀번호 재설정 템플릿으로 사용할 수 있습니다. 인증 코드용 템플릿 변경은 필요 없습니다.
 
-Google 제공자 설정이 꺼져 있으면 앱은 준비 중 안내를 표시합니다. 설정 테이블을 읽지 못하면 계정 프로필을 빈 정보로 덮어쓰지 않고 오류와 재시도를 표시합니다. 계정 프로필 저장에 실패하면 저장 완료 메시지나 홈 이동을 하지 않습니다.
+## 검증과 데이터 처리
 
-## 데이터 및 탈퇴
+- 실제 이메일 제공자가 켜져 있는지 공개 Auth 설정 API로 확인합니다.
+- 브라우저 테스트에서는 인증 서버 응답을 모의하여 로그인·회원가입·인증 대기·오류 처리·비밀번호 재설정 요청·계정 저장·로그아웃을 확인합니다. 실제 메일 수신과 확인 링크는 사용자가 본인 이메일로 확인해야 합니다.
+- 비로그인 알레르기는 자동 업로드하지 않습니다. 계정 화면에서 가져오기를 선택한 경우에만 기존 계정 설정을 바꿉니다.
+- 계정 프로필 조회 실패 시 빈 설정으로 덮어쓰지 않습니다. 저장 실패 시 완료 메시지를 표시하지 않습니다.
+- 로그아웃하면 계정 정보는 화면에서 제거되고 기존 비로그인 설정으로 돌아갑니다. 사진은 계정에 저장하지 않습니다.
+- 설정 초기화와 본인 계정 탈퇴를 지원합니다. 탈퇴 RPC는 사용자 ID 인자를 받지 않고 검증된 JWT의 본인만 삭제하며 개인 설정도 함께 삭제합니다.
 
-- `kfood_user_profiles`에는 사용자 UUID, 언어, 알레르기 태그, 메모, 설정 완료 여부, 갱신 시각만 저장합니다. Google 비밀번호와 음식 사진을 저장하지 않습니다.
-- 로그인한 상태에서 설정의 **내 프로필과 세션 지우기**를 누르면 해당 계정의 알레르기 설정을 비웁니다. 비로그인 상태에서는 이 브라우저의 비로그인 설정만 지웁니다.
-- 계정 화면의 **계정 탈퇴 → 계정 영구 삭제**는 사용자 JWT로 본인 계정만 삭제하는 RPC를 호출합니다. 계정 삭제 시 개인 설정 행도 FK cascade로 삭제됩니다. 다른 사용자 ID를 인자로 받지 않습니다.
-- 앱에서 이미 받은 JWT는 만료 전까지 형식상 유효할 수 있으므로, 이후 개인 테이블을 추가할 때도 반드시 RLS와 `auth.users` FK/삭제 처리를 함께 적용합니다. 현재 개인 설정은 계정 삭제와 함께 제거됩니다.
-
-공식 참고: [Supabase Google 로그인](https://supabase.com/docs/guides/auth/social-login/auth-google), [PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
+공식 참고: [이메일·비밀번호 인증](https://supabase.com/docs/guides/auth/passwords), [메일 발송 설정](https://supabase.com/docs/guides/auth/auth-smtp), [PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow).
