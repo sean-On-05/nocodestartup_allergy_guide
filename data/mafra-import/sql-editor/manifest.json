@@ -1,0 +1,26 @@
+[
+  {
+    "file": "01-import.sql",
+    "bytes": 500562,
+    "recipes_this_file": 179,
+    "ingredients_this_file": 2019,
+    "cumulative_recipes": 179,
+    "cumulative_ingredients": 2019
+  },
+  {
+    "file": "02-import.sql",
+    "bytes": 491504,
+    "recipes_this_file": 179,
+    "ingredients_this_file": 1952,
+    "cumulative_recipes": 358,
+    "cumulative_ingredients": 3971
+  },
+  {
+    "file": "03-import.sql",
+    "bytes": 499206,
+    "recipes_this_file": 179,
+    "ingredients_this_file": 1962,
+    "cumulative_recipes": 537,
+    "cumulative_ingredients": 5933
+  }
+]

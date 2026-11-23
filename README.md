@@ -6,7 +6,7 @@
 
 업로드된 전체 자료를 검사해 **레시피 537개(한식 385개), 연결 재료 5,933행**의 반영용 SQL을 준비했습니다. 부모 음식이 없는 재료 171행은 별도로 보관합니다. 식재료명 715종은 현재 마스터와 정확히 일치하지만 연결은 모두 검토 전입니다. 운영 DB에 직접 쓰지는 않았습니다.
 
-[전체 데이터 반영 안내](docs/mafra-import.md) · [Supabase 실행용 SQL](data/mafra-import/import-to-supabase.sql)
+[전체 데이터 반영 안내](docs/mafra-import.md) · [SQL Editor용 분할 파일 3개](data/mafra-import/sql-editor/README.md)
 
 ## 실행
 

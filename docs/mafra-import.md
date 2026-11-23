@@ -18,16 +18,29 @@
 
 한식 외 자료도 원본을 보존하기 위해 저장합니다. 재료 이름 일치는 알레르기 검증 완료가 아니며 모든 신규 연결은 `needs_review`입니다. 원본에 음식이 없는 재료 171행으로 가짜 음식 레코드를 만들지 않았습니다.
 
-## 지금 할 일 — SQL 한 번 실행
+## 지금 할 일 — 작은 SQL 파일 3개를 순서대로 실행
 
-1. [전체 데이터 반영 SQL](../data/mafra-import/import-to-supabase.sql)을 엽니다. GitHub가 큰 파일을 표시하지 않으면 **Raw** 또는 **View raw**를 누르세요.
-2. 전체 내용을 복사해 Supabase → **SQL Editor → New query**에 붙여넣고 **Run**을 누릅니다.
-3. 마지막 결과가 `recipes = 537`, `ingredients = 5933`인지 확인합니다. 이 숫자는 이번 `epis:` 데이터만 셉니다.
-4. 웹앱을 새로고침합니다. Supabase의 음식 데이터를 우선 읽고, 음식 검색에서 김치찌개·불고기·비빔밥 등을 찾을 수 있습니다.
+기존 1.4MB 파일은 SQL Editor 크기 제한에 걸립니다. 직접 DB에 접속할 필요 없이 아래 세 파일을 각각 실행하세요. 각 파일은 UTF-8 기준 약 0.5MB이며 자체 트랜잭션을 갖습니다.
 
-기존 식약처 샘플 5개를 이미 반영했다면 전체 음식 수는 542개가 될 수 있습니다. SQL 결과의 537은 그 샘플과 구분한 이번 반영 건수입니다.
+1. 파일을 열고 **Raw / View raw**를 눌러 전체 내용을 복사합니다.
+2. Supabase → **SQL Editor → New query**에 붙여넣고 **Run**을 누릅니다.
+3. 결과를 확인하고 다음 파일도 **새 쿼리**에서 실행합니다. 세 파일을 한 쿼리에 합치면 다시 크기 제한에 걸립니다.
 
-SQL은 중복 실행해도 같은 ID를 추가하지 않습니다. 기존 같은 ID의 음식명·재료 내용이 다르거나 알 수 없는 필수 컬럼이 있으면 전체 반영을 중단합니다. 오류가 나면 키나 비밀번호가 아닌 **오류 메시지**를 공유하면 됩니다.
+| 순서 | 실행할 파일 | 완료 후 recipes | 완료 후 ingredients |
+|---|---|---:|---:|
+| 1 | [01-import.sql](../data/mafra-import/sql-editor/01-import.sql) | 179 | 2019 |
+| 2 | [02-import.sql](../data/mafra-import/sql-editor/02-import.sql) | 358 | 3971 |
+| 3 | [03-import.sql](../data/mafra-import/sql-editor/03-import.sql) | 537 | 5933 |
+
+RLS 선택 창이 나오면 **Run and enable RLS**를 선택하세요. 공공 레시피를 읽는 정책이 포함돼 있습니다.
+
+3번까지 성공한 뒤 웹앱을 새로고침하면 Supabase의 음식 데이터를 읽습니다. 김치찌개·불고기·비빔밥 등을 검색할 수 있습니다.
+
+각 파일은 별도 세션에서 실행할 수 있습니다. 파일 사이에 임시 테이블이나 열린 트랜잭션을 공유하지 않습니다. 같은 파일을 다시 실행해도 기존 행을 덮어쓰거나 중복 추가하지 않습니다. 중간 파일이 실패하면 성공한 이전 파일은 그대로 남으며, 오류를 해결한 뒤 실패한 파일부터 재실행할 수 있습니다. 마지막 집계가 537 / 5933이어야 전체 완료입니다.
+
+기존 식약처 샘플 5개가 있다면 전체 음식 수는 542개가 될 수 있습니다. 위 결과는 이번 `epis:` 데이터만 셉니다. 기존 같은 ID의 음식명·재료 내용이 다르거나 알 수 없는 필수 컬럼이 있으면 해당 파일 전체 반영을 중단합니다. 오류 메시지를 공유하면 스키마에 맞게 조정할 수 있습니다.
+
+운영 DB에는 아직 직접 반영하지 않았습니다.
 
 ## 무엇이 바뀌는가
 
@@ -42,7 +55,8 @@ SQL은 중복 실행해도 같은 ID를 추가하지 않습니다. 기존 같은
 
 | 파일 | 용도 |
 |---|---|
-| `data/mafra-import/import-to-supabase.sql` | 실제 반영용 SQL |
+| `data/mafra-import/sql-editor/01-import.sql` ~ `03-import.sql` | SQL Editor에서 실행할 분할 SQL |
+| `data/mafra-import/import-to-supabase.sql` | 전체 단일 파일. SQL Editor에는 붙여넣지 않음 |
 | `external_recipes.csv` | 신규 음식 행, 수동 가져오기 참고용 |
 | `external_recipe_ingredients.csv` | 신규 재료 행, 수동 가져오기 참고용 |
 | `mapping-candidates.csv` | 정확한 이름 일치 후보 715종. 내부 UUID는 제외 |
@@ -59,6 +73,7 @@ python scripts/prepare-mafra-import.py path/to/kfood-mafra.zip
 # 현재 식재료 DB 스냅샷을 갖고 있다면 후보 보고서도 생성
 python scripts/prepare-mafra-import.py path/to/kfood-mafra.zip --master path/to/ingredient-master.json
 python -m unittest discover -s scripts -p 'test_*.py'
+python scripts/split-mafra-sql.py
 npm test
 npm run build
 ```
@@ -71,3 +86,5 @@ npm run build
 - [농림수산식품교육문화정보원 레시피 재료정보](https://www.data.go.kr/data/15058981/openapi.do)
 
 사용자가 승인된 API로 내려받은 원본을 사용합니다. 공공데이터포털의 이용허락범위는 제한 없음으로 확인한 자료입니다. 웹앱의 개인별 안내는 원본 레시피와 기존 검토 전 식재료 데이터를 결합한 참고 정보이며 식당별 실제 원재료나 교차 접촉의 안전을 보장하지 않습니다.
+
+SQL Editor 크기 제한은 [Supabase 공식 소스](https://github.com/supabase/supabase/blob/4a73166675642dc3c1d1fc767a65adbee746d894/apps/studio/data/sql/execute-sql-mutation.ts)에서 확인했습니다. 분할 파일은 각각 600,000바이트 이하인지 검사하며, 세 파일 실행·세션 초기화·재실행·공개 읽기/쓰기 거부를 PostgreSQL 호환 환경에서 검증합니다.

@@ -85,3 +85,28 @@ test('full EPIS import preserves sample data, all 537 recipes and 5933 linked ro
     await db.exec('RESET ROLE')
   } finally { await db.close() }
 })
+test('SQL Editor-sized imports work independently, survive session reset and rerun without duplicates',async()=>{
+  const db=new PGlite()
+  try {
+    await db.exec(schema)
+    await db.exec(sql)
+    const expected=[{recipes:179,ingredients:2019},{recipes:358,ingredients:3971},{recipes:537,ingredients:5933}]
+    const batches:string[]=[]
+    for(let n=1;n<=3;n++) {
+      const batch=await readFile(new URL(`../../data/mafra-import/sql-editor/0${n}-import.sql`,import.meta.url),'utf8')
+      assert.ok(Buffer.byteLength(batch,'utf8')<600000)
+      batches.push(batch)
+      await db.exec(batch)
+      const result=await db.query<{item:string;rows:number}>(`SELECT 'recipes' item,count(*)::int rows FROM external_recipes WHERE recipe_id LIKE 'epis:%' UNION ALL SELECT 'ingredients',count(*)::int FROM external_recipe_ingredients WHERE recipe_id LIKE 'epis:%'`)
+      assert.deepEqual(Object.fromEntries(result.rows.map(r=>[r.item,r.rows])),expected[n-1])
+      await db.exec('DISCARD ALL')
+    }
+    for(const batch of batches)await db.exec(batch)
+    const count=await db.query<{recipes:number;ingredients:number;sample:number}>(`SELECT (SELECT count(*)::int FROM external_recipes WHERE recipe_id LIKE 'epis:%') recipes,(SELECT count(*)::int FROM external_recipe_ingredients WHERE recipe_id LIKE 'epis:%') ingredients,(SELECT count(*)::int FROM external_recipes WHERE recipe_id LIKE 'mfds:%') sample`)
+    assert.deepEqual(count.rows[0],{recipes:537,ingredients:5933,sample:5})
+    await db.exec('SET ROLE anon')
+    const readable=await db.query<{count:number}>(`SELECT count(*)::int FROM external_recipes WHERE recipe_id LIKE 'epis:%'`)
+    assert.equal(readable.rows[0].count,537)
+    await assert.rejects(db.exec(`INSERT INTO external_recipes VALUES('not-allowed','test')`),/permission denied/)
+  } finally {await db.close()}
+})
