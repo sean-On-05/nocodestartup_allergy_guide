@@ -110,3 +110,25 @@ test('SQL Editor-sized imports work independently, survive session reset and rer
     await assert.rejects(db.exec(`INSERT INTO external_recipes VALUES('not-allowed','test')`),/permission denied/)
   } finally {await db.close()}
 })
+test('atomic import succeeds when the import and final counts run in separate autocommit requests',async()=>{
+  const db=new PGlite()
+  try {
+    await db.exec(schema)
+    await db.exec('CREATE TEMP TABLE kfood_seed_payload(data jsonb) ON COMMIT DROP;')
+    await assert.rejects(db.exec(`INSERT INTO kfood_seed_payload VALUES('{}'::jsonb)`),/kfood_seed_payload.*does not exist/)
+    const batch=await readFile(new URL('../../data/mafra-import/sql-editor/01-import.sql',import.meta.url),'utf8')
+    assert.ok(!batch.includes('CREATE TEMP'))
+    assert.ok(!batch.includes('kfood_seed_payload'))
+    const marker=batch.indexOf('-- Cumulative totals for this validated import')
+    assert.ok(marker>0)
+    const atomic=batch.slice(0,marker),counts=batch.slice(marker)
+    // A single DO block is accepted as one SQL statement; no explicit BEGIN/COMMIT or temp session survives.
+    await db.query(atomic)
+    await db.exec('DISCARD ALL')
+    const result=await db.query<{item:string;rows:number}>(counts)
+    assert.deepEqual(Object.fromEntries(result.rows.map(r=>[r.item,Number(r.rows)])),{recipes:179,ingredients:2019})
+    await db.query(atomic)
+    const again=await db.query<{item:string;rows:number}>(counts)
+    assert.deepEqual(Object.fromEntries(again.rows.map(r=>[r.item,Number(r.rows)])),{recipes:179,ingredients:2019})
+  } finally {await db.close()}
+})

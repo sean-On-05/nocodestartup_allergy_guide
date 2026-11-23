@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate three independent SQL Editor-sized recipe imports. No database writes."""
 import collections
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -8,6 +9,26 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 spec=importlib.util.spec_from_file_location('prepare_mafra_import',ROOT/'scripts/prepare-mafra-import.py')
 prepare=importlib.util.module_from_spec(spec);spec.loader.exec_module(prepare)
+
+def session_independent_import(batch,template):
+    sql=prepare.sql_import(batch,template)
+    # One atomic DO statement owns the JSON variable and all writes. No temp tables or cross-statement state.
+    sql=sql[:sql.index('-- Counts for just these source-qualified recipes;')]
+    declaration="DO $$\nDECLARE r record; unexpected text;\nBEGIN"
+    if declaration not in sql:raise ValueError('Preflight template changed; inspect the generator.')
+    sql=sql.replace(declaration,'')
+    sql=sql.replace('FOR r IN SELECT','FOR schema_check IN SELECT').replace('r.table_name','schema_check.table_name').replace('r.cols','schema_check.cols')
+    start=sql.index('CREATE TEMP TABLE kfood_seed_payload')
+    end=sql.index('::jsonb);',start)+len('::jsonb);')
+    sql=sql[:start]+sql[end:]
+    sql=sql.replace('FROM kfood_seed_payload p CROSS JOIN LATERAL jsonb_array_elements(p.data) r','FROM jsonb_array_elements(kfood_payload) r')
+    sql=sql.replace('DO $$\nBEGIN','').replace('END $$;','')
+    sql=sql.replace('\nBEGIN;','').replace('\nCOMMIT;','')
+    literal=prepare.quote(json.dumps(batch,ensure_ascii=False,separators=(',',':')))
+    tag='$kfood_import_'+hashlib.sha256(literal.encode()).hexdigest()[:10]+'$'
+    if tag in literal or tag in sql:raise ValueError('Unexpected delimiter in source.')
+    if 'kfood_seed_payload' in sql or 'CREATE TEMP' in sql or 'DO $$' in sql:raise ValueError('Unexpected session-dependent SQL remains.')
+    return '-- Atomic, session-independent import. No temporary tables.\nDO '+tag+'\nDECLARE\n  kfood_payload jsonb := '+literal+'::jsonb;\n  schema_check record;\n  unexpected text;\nBEGIN\n'+sql+'\nEND '+tag+';\n'
 
 def generate(root=ROOT):
     data=root/'data/mafra-import'
@@ -30,9 +51,7 @@ UNION ALL SELECT 'ingredients',count(*) FROM public.external_recipe_ingredients 
     for index in range(3):
         batch=payload[index*179:(index+1)*179]
         count=sum(len(r['ingredients']) for r in batch);cumulative+=count
-        sql=prepare.sql_import(batch,root/'data/public-recipes/import-to-supabase.sql')
-        # Replace the final batch-only query with cumulative totals. Each file owns its BEGIN/COMMIT and temp table.
-        sql=sql[:sql.index('-- Counts for just these source-qualified recipes;')]+total_sql
+        sql=session_independent_import(batch,root/'data/public-recipes/import-to-supabase.sql')+total_sql
         sql=f"-- FILE {index+1} OF 3. Execute this entire file independently.\n-- Expected cumulative result after files 1..{index+1}: recipes={(index+1)*179}, ingredients={cumulative}.\n"+sql
         filename=f'{index+1:02d}-import.sql'
         size=len(sql.encode('utf-8'))

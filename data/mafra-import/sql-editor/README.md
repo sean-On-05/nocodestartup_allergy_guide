@@ -1,8 +1,10 @@
-# Supabase SQL Editor에서 실행할 파일
+# Supabase SQL Editor에서 실행할 파일 — 임시 테이블 제거 버전
+
+기존 파일의 `kfood_seed_payload does not exist` 오류를 피하도록 임시 테이블을 완전히 제거했습니다. 각 파일의 반영은 JSON 변수와 쓰기 작업이 같은 `DO` 블록 안에서 실행됩니다.
 
 기존 전체 SQL은 약 1.4MB로 SQL Editor 크기 제한을 넘습니다. 아래 파일은 각각 약 0.5MB입니다.
 
-**각 파일을 Raw로 열어 전체 복사 → Supabase SQL Editor의 새 쿼리에 붙여넣기 → Run**을 누르세요. 세 파일을 하나로 합치지 마세요.
+**기존 쿼리 내용을 모두 지우고, 아래 수정 파일을 Raw로 열어 전체 복사 → Supabase SQL Editor의 새 쿼리에 붙여넣기 → Run**을 누르세요. 세 파일을 하나로 합치지 마세요.
 
 | 실행 순서 | 파일 | 결과 recipes | 결과 ingredients |
 |---|---|---:|---:|
