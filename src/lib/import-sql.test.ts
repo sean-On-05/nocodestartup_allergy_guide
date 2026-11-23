@@ -59,3 +59,29 @@ test('existing conflicting recipe IDs abort without changing user data',async()=
     assert.equal(ingredients.rows[0].count,0)
   } finally { await db.close() }
 })
+
+test('full EPIS import preserves sample data, all 537 recipes and 5933 linked rows, and is repeatable',async()=>{
+  const db=new PGlite()
+  try {
+    await db.exec(schema)
+    await db.exec(sql)
+    const bulk=await readFile(new URL('../../data/mafra-import/import-to-supabase.sql',import.meta.url),'utf8')
+    await db.exec(bulk)
+    await db.exec(bulk)
+    const counts=await db.query<{recipes:number;parts:number;sample:number;sources:number}>(`SELECT
+      (SELECT count(*)::int FROM external_recipes WHERE recipe_id LIKE 'epis:%') recipes,
+      (SELECT count(*)::int FROM external_recipe_ingredients WHERE recipe_id LIKE 'epis:%') parts,
+      (SELECT count(*)::int FROM external_recipes WHERE recipe_id LIKE 'mfds:%') sample,
+      (SELECT count(*)::int FROM kfood_public_recipe_sources WHERE source_record IS NOT NULL) sources`)
+    assert.deepEqual(counts.rows[0],{recipes:537,parts:5933,sample:5,sources:537})
+    const codes=await db.query<{ingredient_type_code:string;ingredient_type_name:string}>(`SELECT ingredient_type_code,ingredient_type_name FROM external_recipe_ingredients WHERE recipe_id='epis:1' AND ingredient_seq=1`)
+    assert.deepEqual(codes.rows[0],{ingredient_type_code:'3060001',ingredient_type_name:'주재료'})
+    const statuses=await db.query<{count:number}>(`SELECT count(*)::int FROM external_ingredient_master_mapping WHERE mapping_status<>'needs_review'`)
+    assert.equal(statuses.rows[0].count,0)
+    await db.exec('SET ROLE anon')
+    const read=await db.query<{count:number}>(`SELECT count(*)::int FROM external_recipes WHERE recipe_id LIKE 'epis:%'`)
+    assert.equal(read.rows[0].count,537)
+    await assert.rejects(db.exec(`DELETE FROM external_recipes WHERE recipe_id='epis:1'`),/permission denied/)
+    await db.exec('RESET ROLE')
+  } finally { await db.close() }
+})

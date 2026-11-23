@@ -15,6 +15,7 @@ export interface Dish {
   external_ingredient_ids: string[]; ingredients_complete: boolean;
   nutrition?: { kcal: number; protein_g: number; carbs_g: number; source: string };
   source_note: string;
+  cuisine?: string;
   source_kind?: 'public' | 'reference' | 'demo'; source_url?: string;
   raw_ingredients?: string; unmapped_ingredients?: string[];
   reference_ingredients?: { name: string; quantity: string; mapped: boolean }[];

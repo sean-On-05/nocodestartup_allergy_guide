@@ -1,0 +1,81 @@
+{
+  "source_sha256": "edb485a809c7d6f5927a5565d9db5c9f69c19ea5c2b6f52a84c8a036344aa754",
+  "source_manifest": {
+    "provider": "농림수산식품교육문화정보원 / 농림축산식품 공공데이터포털",
+    "downloaded_at": "2026-11-23T04:47:30.874201+00:00",
+    "recipes": 537,
+    "recipe_ingredients": 6104,
+    "unlinked_recipe_ingredient_rows": 171,
+    "datasets": {
+      "recipes": "https://www.data.go.kr/data/15057205/openapi.do",
+      "recipe_ingredients": "https://www.data.go.kr/data/15058981/openapi.do"
+    },
+    "note": "Source rows preserved. No allergen safety claims or automatic mappings have been added."
+  },
+  "recipes": 537,
+  "korean_recipes": 385,
+  "other_cuisine_recipes": 152,
+  "ingredient_rows_imported": 5933,
+  "ingredient_rows_quarantined": 171,
+  "unique_ingredient_names": 715,
+  "duplicate_recipe_ids": 0,
+  "duplicate_ingredient_keys": 0,
+  "name_matches": {
+    "exact": 715
+  },
+  "all_mapping_status": "needs_review",
+  "database_writes_performed": false,
+  "raw_source_counts": {
+    "recipes": 537,
+    "ingredients": 6104
+  },
+  "cuisines": {
+    "한식": 385,
+    "중국": 27,
+    "동남아시아": 3,
+    "서양": 43,
+    "이탈리아": 13,
+    "퓨전": 41,
+    "일본": 25
+  },
+  "quarantined_recipe_ids": [
+    501,
+    502,
+    503,
+    504,
+    505,
+    506,
+    507,
+    508,
+    509,
+    510,
+    511,
+    512,
+    513,
+    514,
+    515,
+    517,
+    518,
+    519,
+    520,
+    521,
+    522,
+    523,
+    524,
+    525,
+    526,
+    527,
+    528,
+    529,
+    530,
+    532,
+    533,
+    534,
+    535,
+    536,
+    537,
+    538,
+    539,
+    540
+  ]
+}

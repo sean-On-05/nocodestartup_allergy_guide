@@ -59,3 +59,14 @@ test('prepared data has noncolliding source-qualified IDs and deterministic ingr
     assert.ok(r.ingredients.every(i=>i.ingredient_name.trim()&&i.ingredient_quantity.trim()))
   }
 })
+test('EPIS source metadata adds provenance only when source ingredients still match the imported recipe',()=>{
+  const records=[{recipe_id:'epis:1',recipe_name_ko:'나물비빔밥'}]
+  const parts=[{recipe_id:'epis:1',ingredient_seq:1,ingredient_name:'달걀',ingredient_quantity:'1개'}]
+  const sources=[{recipe_id:'epis:1',provider:'농림수산식품교육문화정보원',dataset_url:'https://www.data.go.kr/data/15057205/openapi.do',retrieved_on:'2026-11-23',raw_ingredients:'달걀 1개',source_record:{recipe:{RECIPE_NM_KO:'나물비빔밥',NATION_NM:'한식',TY_NM:'밥'},ingredients:[{ingredient_seq:1,ingredient_name:'달걀',ingredient_quantity:'1개'}]}}]
+  const c=connectRecipeRecords(fixture,records,parts,[],'supabase',sources)
+  assert.equal(c.dishes[0].source_kind,'public');assert.equal(c.dishes[0].cuisine,'한식')
+  assert.equal(c.dishes[0].raw_ingredients,'달걀 1개')
+  const changed=connectRecipeRecords(fixture,records,[{...parts[0],ingredient_quantity:'2개'}],[],'supabase',sources)
+  assert.equal(changed.dishes[0].source_kind,'reference')
+  assert.equal(changed.dishes[0].source_url,undefined)
+})
