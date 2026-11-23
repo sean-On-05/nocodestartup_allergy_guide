@@ -8,6 +8,10 @@
 
 [전체 데이터 반영 안내](docs/mafra-import.md) · [SQL Editor용 분할 파일 3개](data/mafra-import/sql-editor/README.md)
 
+## Vercel 배포
+
+[Vercel 배포 안내](docs/deploy-vercel.md)에 따라 이 저장소를 Import하고 Supabase 공개 환경 변수 두 개를 등록하세요. `vercel.json`에 Vite 빌드 설정이 포함되어 있습니다. 사진 AI는 배포 후 Gemini 무료 등급으로 연결할 예정이며 아직 활성화되지 않았습니다.
+
 ## 실행
 
 ```sh
