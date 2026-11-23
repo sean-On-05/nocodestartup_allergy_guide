@@ -84,3 +84,9 @@ docs/inspect-schema.sql     스키마·정책 조회용 읽기 전용 SQL
 공공데이터 반영은 [준비된 SQL](data/public-recipes/import-to-supabase.sql)을 Supabase SQL Editor에서 실행하면 됩니다. 중복·충돌 방지와 공개 읽기 전용 정책이 포함되어 있습니다.
 
 기타 스키마 확인 방법은 [Supabase 연동 문서](docs/supabase.md)를 참고하세요.
+
+## 계정 및 로그인
+
+Google 로그인과 개인 알레르기 동기화는 Supabase Auth로 처리합니다. 운영 활성화에는 [Google 로그인 설정 안내](docs/login-setup.md)에 따라 개인 설정 SQL 실행, Google OAuth 제공자와 복귀 URL 등록이 필요합니다. 로그인 전 설정은 자동 업로드하지 않습니다. 로그인/비로그인 설정은 분리되며 사진은 계정에 저장하지 않습니다.
+
+비로그인 검색·사진 인식은 그대로 이용할 수 있습니다. 로그아웃, 계정 설정 초기화, 본인 계정 탈퇴를 지원합니다. RLS 격리와 본인 계정 삭제 동작은 PostgreSQL 테스트로 검증합니다.
