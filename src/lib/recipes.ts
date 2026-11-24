@@ -1,5 +1,6 @@
 import publicData from '../../data/public-recipes/mfds-sample.json'
 import type { Catalog, Dish, ExternalIngredientMapping, Ingredient } from './types'
+import { ingredientEnglish, recipeEnglish, quantityEnglish } from './localization'
 export interface RecipeRecord { recipe_id: string; recipe_name_ko: string }
 export interface RecipeIngredientRecord { recipe_id: string; ingredient_seq: number; ingredient_name: string; ingredient_quantity: string | null }
 export interface RecipeSourceRecord { recipe_id:string; provider:string; dataset_url:string; raw_ingredients:string; retrieved_on:string; source_record?:{ recipe?:Record<string,unknown>; ingredients?: Omit<RecipeIngredientRecord,'recipe_id'>[] } | null }
@@ -30,14 +31,14 @@ export function connectRecipeRecords(catalog: Catalog, recipes: RecipeRecord[], 
     const sourceUrl = imported?.dataset_url && /^https?:\/\//.test(imported.dataset_url) ? imported.dataset_url : undefined
     const unresolved = parts.filter(p=>!links.find(l=>l.external_id===p.ingredient_name)?.ingredient_id).map(p=>p.ingredient_name)
     return {
-      id:recipe.recipe_id, name_ko:recipe.recipe_name_ko, name_en:metadata?.recipe_name_en || recipe.recipe_name_ko,
+      id:recipe.recipe_id, name_ko:recipe.recipe_name_ko, name_en:recipeEnglish(recipe.recipe_name_ko, metadata?.recipe_name_en),
       description_en:'Reference recipe. Actual ingredients vary by restaurant.', description_ko:'참고 레시피이며 실제 사용 재료는 매장마다 달라요.',
       cuisine, category: metadata?.category === 'stew' || /국|찌개|전골|스튜/.test(sourceCategory) ? 'stew' : /면/.test(sourceCategory) ? 'noodles' : /떡볶이/.test(recipe.recipe_name_ko) ? 'street' : 'rice', ingredient_ids:[], external_ingredient_ids:[...new Set(parts.map(p=>p.ingredient_name))],
       ingredients_complete:false, unmapped_ingredients:[...new Set(unresolved)],
-      reference_ingredients:parts.map(p=>({ name:p.ingredient_name, quantity:p.ingredient_quantity || '', mapped:!!links.find(l=>l.external_id===p.ingredient_name)?.ingredient_id })),
+      reference_ingredients:parts.map(p=>({ name:p.ingredient_name, name_en:ingredientEnglish(p.ingredient_name), quantity:p.ingredient_quantity || '', quantity_en:quantityEnglish(p.ingredient_quantity || ''), mapped:!!links.find(l=>l.external_id===p.ingredient_name)?.ingredient_id })),
       source_kind:metadata||imported?'public':'reference', source_url:metadata?.source_dataset_url || sourceUrl,
       raw_ingredients:metadata?.raw_ingredients || imported?.raw_ingredients,
-      source_note:metadata?`식품의약품안전처 COOKRCP01 · ${recipe.recipe_id}. Official sample recipe. Ingredient-name links and allergen guidance need review. English name is an app translation.`:imported?`${imported.provider} · ${recipe.recipe_id} · ${imported.retrieved_on}. Public reference recipe. Name identity matches do not verify allergen evidence.`:'Imported reference recipe. Recipe ingredients, name links and allergen guidance need review.'
+      source_note:metadata?`MFDS COOKRCP01 · ${recipe.recipe_id}. Official sample recipe. Ingredient-name links and allergen guidance need review. English names are app translations.`:imported?`Public recipe dataset · ${recipe.recipe_id} · ${imported.retrieved_on}. Public reference recipe. Name identity matches do not verify allergen evidence. English names are app translations.`:'Imported reference recipe. Recipe ingredients, name links and allergen guidance need review.'
     }
   })
   return { ...catalog, external_ingredient_master_mapping:links, dishes, recipe_data_origin:origin }

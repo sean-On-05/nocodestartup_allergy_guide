@@ -18,7 +18,7 @@ export interface Dish {
   cuisine?: string;
   source_kind?: 'public' | 'reference' | 'demo'; source_url?: string;
   raw_ingredients?: string; unmapped_ingredients?: string[];
-  reference_ingredients?: { name: string; quantity: string; mapped: boolean }[];
+  reference_ingredients?: { name: string; name_en?: string; quantity: string; quantity_en?: string; mapped: boolean }[];
 }
 export interface Catalog {
   recipe_data_origin?: 'bundled-public' | 'supabase'; recipe_load_issue?: boolean;

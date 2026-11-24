@@ -1,4 +1,5 @@
 import type { Catalog, Ingredient, VerificationStatus } from './types'
+import { ingredientEnglish } from './localization'
 import { connectBundledRecipes, connectRecipeRecords, type RecipeRecord, type RecipeIngredientRecord, type IngredientNameMapping, type RecipeSourceRecord } from './recipes'
 export const knownAllergenNames: Record<string, [string, string]> = {
   Crustacean: ['Crustaceans (incl. shrimp)', '갑각류 (새우 등)'], Peanuts: ['Peanuts', '땅콩'], Milk: ['Milk', '우유'], Egg: ['Egg', '달걀'], Soy: ['Soy', '대두'], Wheat: ['Wheat', '밀'], Gluten: ['Gluten', '글루텐'], Fish: ['Fish', '생선'], Shellfish: ['Shellfish', '조개류'], Sesame: ['Sesame', '참깨'], 'Tree Nuts': ['Tree nuts', '견과류'], Sulphites: ['Sulphites', '아황산류'], Mustard: ['Mustard', '겨자'], Celery: ['Celery', '셀러리'], Buckwheat: ['Buckwheat', '메밀'], Squid: ['Squid', '오징어'], Peach: ['Peach', '복숭아'], Beef: ['Beef', '소고기'], Pork: ['Pork', '돼지고기'], Chicken: ['Chicken', '닭고기'], Rice: ['Rice', '쌀'], Tomato: ['Tomato', '토마토'], Garlic: ['Garlic', '마늘'], Onion: ['Onion', '양파'], Lupin: ['Lupin', '루핀']
@@ -74,7 +75,7 @@ export function normalizeIngredients(rows: Record<string, unknown>[]): Catalog {
   const list = (v: unknown) => Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string' && !!s.trim()) : []
   const ingredients: Ingredient[] = rows.map(row => {
     if (!text(row.id) || !text(row.ingredient_name)) throw new Error('Missing ingredient identity')
-    return { id: text(row.id), ingredient_name: text(row.ingredient_name), global_allergens: list(row.global_allergens), vegan_level: text(row.vegan_level), diet_categories: list(row.diet_categories), hidden_warning_en: text(row.hidden_warning_en), staff_request_ko: text(row.staff_request_ko), user_notice_en: text(row.user_notice_en), verification_status: (['verified','needs_review'].includes(text(row.verification_status)) ? row.verification_status : 'unknown') as VerificationStatus, source_note: text(row.source_note) }
+    return { id: text(row.id), ingredient_name: text(row.ingredient_name), ingredient_name_en: ingredientEnglish(text(row.ingredient_name),text(row.ingredient_name_en)), global_allergens: list(row.global_allergens), vegan_level: text(row.vegan_level), diet_categories: list(row.diet_categories), hidden_warning_en: text(row.hidden_warning_en), staff_request_ko: text(row.staff_request_ko), user_notice_en: text(row.user_notice_en), verification_status: (['verified','needs_review'].includes(text(row.verification_status)) ? row.verification_status : 'unknown') as VerificationStatus, source_note: text(row.source_note) }
   })
   if (new Set(ingredients.map(i => i.id)).size !== ingredients.length) throw new Error('Duplicate ingredient identity')
   const tags = [...new Set(ingredients.flatMap(i => i.global_allergens))].sort((a,b) => {
